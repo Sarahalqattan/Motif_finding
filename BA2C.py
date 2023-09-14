@@ -1,3 +1,7 @@
+#Problem BA2C
+#Given: A string Text, an integer k, and a 4 × k matrix Profile.
+#Return: A Profile-most probable k-mer in Text. (If multiple answers exist, you may return any one.)
+
 # 1. Find the porobability of each k-mer in the string 
 
 def Probability (string, matrix):
