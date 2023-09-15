@@ -4,34 +4,33 @@
 
 # 1. Find the porobability of each k-mer in the string 
 
-def Probability (string, matrix):
-    Probable= 1 #Assign the probability to 1
-    for i in range (len(string)):
-        if string [i]== 'A':
-            Probable= Probable * matrix [0][i] #Multiply the value with probability of A in the 1st row and i column
-        if string [i]== 'C':
-            Probable= Probable * matrix [1][i] #Multiply the value with probability of C in the 2nd row and i column
-        if string [i]== 'G':
-            Probable= Probable * matrix [2][i] #Multiply the value with probability of G in the 3rd row and i column
-        if string [i]== 'T':
-            Probable= Probable * matrix [3][i] #Multiply the value with probability of T in the 4th row and i column
-    return Probable
-
 # 2. Find the most probable k-mer
 
-def MostProbableK_mer(string, k, matrix):
-    sequence= {} #Make a set of k-mers and their probabilities
-    max_value= 0 #Assign the maximum value to zero 
-    for i in range (len(string)-k+1):
-        sequence [string [i:i+k]]= Probability (string[i:i+k], matrix) #Call Probability function
-    for key, value in sequence.items():
-        if value > max_value:
-            max_value = value #Find the maximum probability 
-    sequences =[]
-    for key, value in sequence.items():
-        if value == max_value:
-            sequences.append(key) #Return the k-mer with maximum probability
-    return sequences
+def MostProbableK_mer(text, k, profile):
+    max_probability = 0.0
+    most_probable_kmer = ""
+
+    for i in range(len(text) - k + 1):
+        kmer = text[i:i+k]
+        probability = 1.0
+        for j in range(k):
+            nucleotide = kmer[j]
+            for n in nucleotide:
+                if n == 'A':
+                    probability = probability * profile[0][j]
+                if n == 'C':
+                    probability = probability * profile[1][j]
+                if n == 'G':
+                    probability = probability * profile[2][j]
+                if n == 'T':
+                    probability = probability * profile[3][j]
+
+        if probability > max_probability:
+            max_probability = probability
+            most_probable_kmer = kmer
+
+    return most_probable_kmer
+            
    
 
 print (profile_most_probable_kmer('ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT', 5, [[0.2, 0.2, 0.3, 0.2, 0.3],
