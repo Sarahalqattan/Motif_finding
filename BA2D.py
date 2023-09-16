@@ -2,31 +2,99 @@
 #Given: Integers k and t, followed by a collection of strings Dna.
 #Return: A collection of strings BestMotifs resulting from running GreedyMotifSearch(Dna, k, t). If at any step you find more than one Profile-most probable k-mer in a given string, use the one occurring first.
 
-# 1. Find the porobability of each k-mer in the string 
+def CountMatrix(Dna):
+    Dna_Matrix = [[Dna[j][i]for j in range (len(Dna))]for i in range (len(Dna[0]))]
+    count_A=0
+    count_C=0
+    count_G=0
+    count_T=0
+    list =[]
+    for row in Dna_Matrix:
+        for base in row:
+            if base == 'A':
+                count_A+=1
+            if base == 'C':
+                count_C+=1
+            if base == 'G':
+                count_G+=1
+            if base == 'T':
+                count_T+=1
+        list.append(str(count_A)+ str(count_C)+str(count_G)+str(count_T) )
+        count_A=0
+        count_C=0
+        count_G=0
+        count_T=0
+        
+    count_Matrix= [[list[j][i]for j in range (len(list))]for i in range(len(list[0]))]
+    
+    
+    return count_Matrix
 
-def Probability (string, matrix):
-    Probable= 1 #Assign the probability to 1
-    for i in range (len(string)):
-        if string [i]== 'A':
-            Probable= Probable * matrix [0][i] #Multiply the value with probability of A in the 1st row and i column
-        if string [i]== 'C':
-            Probable= Probable * matrix [1][i] #Multiply the value with probability of C in the 2nd row and i column
-        if string [i]== 'G':
-            Probable= Probable * matrix [2][i] #Multiply the value with probability of G in the 3rd row and i column
-        if string [i]== 'T':
-            Probable= Probable * matrix [3][i] #Multiply the value with probability of T in the 4th row and i column
-    return Probable
+def ProfileMatrix(count_Matrix):
+    list = []
+    total=0
+    n= len(count_Matrix)
+    a= [int(item [0]) for item in count_Matrix]
+    total= sum(a)
+         
+    profile_Matrix= [[int(x)/total for x in lst]for lst in count_Matrix]
+    
+    return profile_Matrix
 
-# 2. Find the most probable k-mer
+def KmerProbability(kmer,profile_Matrix):
+    
+    probability= 1
+    count = 0
+    
+    for i in kmer:
+        
+        global nuc
+        if i=='A':
+            nuc= profile_Matrix[0][count]
+        if i=='C':
+            nuc= profile_Matrix[1][count]
+        if i=='G':
+            nuc= profile_Matrix[2][count]
+        if i=='T':
+            nuc= profile_Matrix[3][count]
+        count +=1
+        
+        probability= probability*nuc
+        
+    return probability
 
-def MostProbableK_mer(string, k, matrix):
-    sequence = {}
-    for i in range(len(string) - k + 1):
-        sequence[string[i:i + k]] = Probability(string[i:i + k], matrix)
-    max_key = sorted(sequence.items(), key=lambda x:x[1], reverse=True)[0][0]
-    return max_key
+def SelectFirstKmer (k, Dna):
+    list= []
+    for i in Dna:
+        list.append(i[0:k])
+    return list
 
-# 3. Find the score
+def AllPossibleKmers(Dna, k):
+   
+    kmer_list=[]
+    for dna in Dna:
+        for x in range (0, len(dna)-k-1):
+            for i in range(len(dna)-k+1):
+                row= dna[i:i+k]
+                kmer_list.append(row) 
+    kmer_list= list(dict.fromkeys(kmer_list))
+            
+    return kmer_list
+
+def MostProbableK_mer(AllPossiblekmers, profile_Matrix):
+    
+    max_probability=0
+    
+    dict= {}
+    
+    for i in AllPossiblekmers:
+        probability= KmerProbability(i,profile_Matrix)
+        dict[probability]=i
+        
+        if probability> max_probability:
+            max_probability = probability
+    
+    return dict[max_probability]
 
 def Score(Motifs):
     score = 0
@@ -35,59 +103,19 @@ def Score(Motifs):
         score += (len(j) - max(j.count("A"), j.count("C"), j.count("T"), j.count("G")))
     return score
 
-# 4. Apply Greedy Motif Search 
-
 def GreedyMotifSearch(Dna, k, t):
-    # BestMotifs ← motif matrix formed by first k-mers in each string from Dna
-    BestMotifs = [dna[:k] for dna in Dna]
-    # for each k-mer Motif in the first string from Dna
-    for k_mer in [Dna[0][i:i+k] for i in range(len(Dna[0])-k+1)]:
-        # Motif1 ← Motif
-        Motifs = [k_mer]
-        # for i = 2 to t
-        for i in range(1, t):
-            # form Profile from motifs Motif1, …, Motifi - 1
-            motifs = Motifs[:i]
-            # Motifi ← Profile-most probable k-mer in the i-th string in Dna
-            matrix = []
-            for n in ["A", "C", "G", "T"]:
-                mat = []
-                for j in range(k):
-                    mm = [m[j] for m in motifs]
-                    mat.append(mm.count(n)/len(motifs))
-                matrix.append(mat)
-            # Motifs ← (Motif1, …, Motift)    
-            Motifs.append(MostProbableK_mer(Dna[i], k, matrix))
-        # print(Motifs)
-        # if Score(Motifs) < Score(BestMotifs), BestMotifs ← Motifs
-        if Score(Motifs) < Score(BestMotifs):
+    
+    BestMotifs= SelectFirstKmer (k, Dna)
+    BestMotifsScore= Score(BestMotifs)
+    
+    for i in Dna:
+        Motifs= []
+        count= CountMatrix(Dna)
+        profile= ProfileMatrix(count)
+        text= [i]
+        rowAllKmers= AllPossibleKmers(text, k)
+        mostprobablerowkmer= MostProbableK_mer(rowAllKmers, profile)
+        Motifs.append(mostprobablerowkmer)
+        if Score(Motifs) < BestMotifsScore:
             BestMotifs = Motifs
-    return BestMotifs
-
-output =GreedyMotifSearch (['GTCCCGTGTCGAATTGGTCTAGTGGGGCAACGCAAGCCCCTGAATCTTGTGTTAGGGTCGCTACTACACACGGCAGCAGCGCAGTTAAAGACCTAGACACCTGGGGGAGATCAACCATATGAAACCACGGGAATACACTTGCACCTTTCGGGTCAA',
-'GTAGACTATCGGAAATATACCTCGGAGGCTGGTCACGCGTCTGAGGGACGTTGAACCTAAGATTAAGAAGGTTATGCGCCTAAAAAGGAGGTTGGACCACTGGCGTTCTATTTACCCATATATTTCTCAAAATAGCATGGATTAGCTAATCGGTGC',
-'TACCTGCCGGGCCCTAGGTCAGATATCCAAAATGCGAACGCACCAATTTTTCCCCAGGAACGATTATACTCGACCGGCAGATGCTCGGGGTAAAGCCCATCACGAGATGCGGCTGCGGGATAACGGAACGTGAGCGAATGAGGCTTCATACCTCAA',
-'CTTAGTTGTCCAAGGGCTCCAATGGTGGCCGGCGGATACTCGATCTACTGTCTCGTGCGTAATCTATTCAATCCACCTAGTACGAGGGTGGGGAATTGATTGTGCCATAAGGTCTAATTCGGGGCCAGTTCGCATGTTAATGTTCCCTCTGTGGGA',
-'AAGGCCGAGAGTACCACCCGTAAAGACGAACTTCATAAACTGTGTGACGGTATTTCCGGAAAAATCTTAACGACTTCTCGTCGTTGTTTATATCTGCGGGTCATATACTCGCCTGCGGGAAAATAAGTACGACTAAGGCTTATTGAAATTGACCAT',
-'ACCAAAAGCACACGAGACTGCGTAAATTCCTCGGGTGTTGCAGGGAGGGAGCATTTCTATCGTTGCCTTTGCCACAGCTCTCCGTGGAGCGCGTCGCCCTCTGGGGGAAAATGGCTTTCCTGACATCTGGCGAAAACTTAATACTATCGGGGCTGT',
-'TGCCGTGCACCATTAAAGTAAAATCAATCATATCGGTGGAAAACACTAGTGCCCCGGTCAGGTGCCCCGATTACTTAATAGGGAGGCTTCGGTCAACCGGCTGTGGGATCTGGCTTCAGATTTCTTCATCTTCGAGTGTACCACTTGAGGTTAGGC',
-'CGCAAATAGAGCAGGGCACTCCCAGTGGCGTCCACGCTAATACTGCATTCGTCCCGGACATGAATGACTAGGGCGCCGTACTTAGTTATAGCCGCATCCAACTGTCTCATGATGGGGTTATATCTTAGACTCACGCCTGCGGGAGTTAGCGCATGT',
-'AAAGCACCTCAGCCCCAGGAGTATTATAAAATTTTGCGGGGATCAGATATGGACCCCATTATTCATGGCCTTATTCTATAAAGGGGCGGTAATAAGCGCCCTAATGAAGTCACTGTTTCGACGACTGCGGGATATCCTTATACCCGCTGACTCGCG',
-'ACTCTCCGCTTGCGTTTTTTATCCAATCGACCAGACACGACGCTTGGCTAAAAGAAAGAAGCGGGCAAATAACCTCCTGAGGGATTCACCGAAATCATGCTGAGTGTGGGGCTTCTTTAGGATCCTATACAGCTGCCATAGCAATAAGGCGCACAG',
-'AAATAGCTTGGTAAGGAATTAAACCGCGGCAATATTCGATTGTGAGCTATTCGCCCACACTGTGCACTGTCCCACACTGAAACCCAGTTGAGGATGATCCCCCGAGAAAATCCGGTTACACCGGCTGGGGGATTCTTGTAGGGGACTTCACATCGT',
-'GCGTGCTTGGACATTGCGCGTAAGCAGTCTATAGAAAATCCCCAATTGGTTGCTTCTCTGACAGCTGCGGGAGAGCGAAGCCGCCGACCACTTCCCCGGTGCCACGTTTAATAAACCCAGGCCCATTAATGTTTCAGCACGACTGTCTTTACGCAC',
-'TCCCCTGAGGGAGGTGCGAGATGACGAGCTTGCTCAAGTGAGTTTGCTAGCGGATTCTTAGATGCTAGTTATTGTAACACGGGACTCAAGTTTCTGATGCGGACGTGCTTCCCCCTAGACTCAGAGTCAAGATAGTCCGCCATGAATTTTACGACA',
-'AAAGAGTGCACCCCCCTACGCGCATTTATGAGTCCATATGAGCGCGGGGATCATGACTCGAAACAAGGGGAATACAAATCGTGCTGCCTCACCATACGGGGGTTCTGACCGACTGCGGGATCCGCGATAATTCACGTGTTGGGGAATGTTAGCGTT',
-'CCAGCGATCCCGGAGGGGAAAACTGATAGGGACTAACAGACATTTAGTTAGGGGAAACGCGGCTTTTGCGTTCGTAATGCTCCATTTCCCCACAGATGGTTGGTTGGGTCGACTGCGGGAAAGATTGCGGCTTACCTGCCCTAAGTCTAGGCGTTC',
-'ACCCGGGTCGAAAACACTGTTGTGTTGTAAGAGCCTCTAAACCGGTGTGATCGACCAACTTTCATGCTTGCCACGCGGTCTAACCCGCATCGTTCCTCGTCTGAGGGAGTACACAAGAGCGCGTGTGTTGATTAGTCTGGAGGTAATGAGATAAAT',
-'CGCTAATCCGACGATACTCGTAAGGATGAAGGGACGCCTGACACCCTGTTCAAGCTCCTCCGAAGTGGAGTTAGATCATCATTTTCTTCTGAGGGACAAGTTTAAATGCGAGAGCGGTCCATATTCAGAGATTCCCCTTTTGCTGAAGAAATAAAA',
-'AGCCCCCCTTAGTTATATGGTTATTCTTAGACGTTGTTGTATAAAGCACTCAACCGTTGTAAATATCTTACACATGTGGCCACGTCGACTGAGGGAAAGACGTCAGGCTACAGCCCATTTATGCTGAGTAGCGATTGCGGGACGGCGGAACAATTG',
-'ACGGATGGGTCGACAACTGGGGGAACAACCACAGCGTCTATGCTAAGGCGACTATTACCCAGGAGGGAGATGCAGCTTGTTGCTGACGCAACTGTAGCCAGCATATGCTCCCATCTAGTCTTTCGTTATGCTCAGTTGTAATAGTGTGTGGCTAGG',
-'AGGCTCTATTAATTGGAGCGCCCCTTAGTTCATCGGGCAATGTCTGTTATTCAAGCGCGGCTCTTACTTAAGTCCATGACTGGCACATTTCCTAAAGGCGTGAGGACCGCTTCTGCGGGACTTCATCCCCTGGGACAGAAGCCTTCTACAAGTCCT',
-'TATAGCTGGCGCCCGGCTGTGGGATCAATTAAAAAAAACTGGCCTGGTAGTGTCTGAAATCGTGATTAACTTTGCCCGCTCGCCACTCTAGTACTAGCAAACCCTGAGTTCAAACCCTCTCTTCGAAGGTCGCTGGTGGACTGACGCAGAGTAAAG',
-'AGTAGCGCATTAGCGACAACTTACCTGCCGCCCAATGCGCGTCACATCTCCTTAAGGGTTATAAGGGTTGAGCGGGCCACCCCTTTGTTACCCCTGGATCAAGGGACATGGTGCGAGATCCGGAAAAAACTTCCAACTGTGGGACCCCGCCTGGTT',
-'CTCTGAATTAAGCTGGCATTGGGCTTAGGACCTTTACCGCTATACGGGACTGAGCTTATTGTTCAGCGCGACTGGGGATTCTCACTGTACCATCTCGCTTCTGTGGGAATTCGCATTTCTAGACCGACATCGCCAGATCCCAAAATATACGGTGAA',
-'GAGACAAGCCAAGATCTATCCAAATTACGGGCATCCGGAATGCATAAGACGTCTGCGGGAGCAACGCTATGGATACCTCTCAAATCAAGGTGATTATTGTCAAATAGCGGTTCCACGGTGAGTAAAATAGAAACGGCAGGCCAGAACTGTATGTGT',
-'AGGAGTGCTGCAAAAAATGCACCTAGCTTTAACGATTAGCCCTCCAGTACCGCTGCGGGAAGGACAAGCCAAGAACTACTACTGAACGGCTACGGCGCGCCGTCGCGGCGCGTATAGTCATAAGGAGTACAGACGAATAGATCGGTGCCCGCCCAG'], 12, 25)
-for item in output:
-    print(item,end=' ')
+        print (BestMotifs)
