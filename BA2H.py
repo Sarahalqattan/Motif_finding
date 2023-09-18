@@ -32,3 +32,6 @@ def DistanceBetweenPatternAndStrings(pattern, strings):
                 HammingDistance = hd
         distance += HammingDistance
     return distance
+
+print (DistanceBetweenPatternAndStrings ('AAA', ['TTACCTTAAC', 'GATATCTGTC', 'ACGGCGTTCG', 'CCCTAAAGAG', 'CGTCAGAGGT']
+
