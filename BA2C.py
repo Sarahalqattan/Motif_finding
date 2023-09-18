@@ -33,7 +33,7 @@ def MostProbableK_mer(text, k, profile):
             
    
 
-print (profile_most_probable_kmer('ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT', 5, [[0.2, 0.2, 0.3, 0.2, 0.3],
+print (MostProbableK_mer('ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT', 5, [[0.2, 0.2, 0.3, 0.2, 0.3],
 [0.4, 0.3, 0.1, 0.5, 0.1],
 [0.3, 0.3, 0.5, 0.2, 0.4],
 [0.1, 0.2, 0.1, 0.1, 0.2]]))
