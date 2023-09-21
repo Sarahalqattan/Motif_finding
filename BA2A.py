@@ -20,17 +20,15 @@ def mismatch(text1, text2):
 
 def Neighbors(pattern, d):
     base = ['A', 'T', 'G', 'C']
-    Neighbourhood = set()
+    Neighborhood = set()
     n2 = len(pattern)
     n3 = len(base)
     for i in range(n2):
         for j in range(n3):
-            Neighbour = pattern[:i] + base[j] + pattern[i+1:]
-            if d <= 1:
-                Neighbourhood.add(Neighbour)
-            else:
-                Neighbours(Neighbour, d - 1, Neighbourhood)  
-    return Neighbourhood
+            Neighbor = pattern[:i] + base[j] + pattern[i+1:]
+            Neighborhood.add(Neighbor)
+        
+    return Neighborhood
 
 def MotifEnumeration(dna, k, d):
     patterns = set()
@@ -52,3 +50,9 @@ def MotifEnumeration(dna, k, d):
             motifpatterns.append(pattern)
 
     return motifpatterns
+
+strings= ['TCTGAGCTTGCGTTATTTTTAGACC', 'GTTTGACGGGAACCCGACGCCTATA', 'TTTTAGATTTCCTCAGTCCACTATA', 'CTTACAATTTCGTTATTTATCTAAT', 'CAGTAGGAATAGCCACTTTGTTGTA', 'AAATCCATTAAGGAAAGACGACCGT']
+k= 5
+d= 2
+
+print(' '.join(MotifEnumeration(strings,k,d)))
