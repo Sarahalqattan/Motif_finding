@@ -2,90 +2,208 @@
 #Given: Integers k, t, and N, followed by a collection of strings Dna.
 #Return: The strings BestMotifs resulting from running GibbsSampler(Dna, k, t, N) with 20 random starts. Remember to use pseudocounts!
 
-
+# Need some random number functionality and the operator.add ability.
 import random
+import operator
 
-# Function to randomly select a k-mer index from a sequence based on probabilities
-def random_kmer_index(sequence, k, profile_matrix):
-    probabilities = []
-    for i in range(len(sequence) - k + 1):
-        kmer = sequence[i:i + k]
-        probabilities.append(calculate_kmer_probability(kmer, profile_matrix))
-    total_prob = sum(probabilities)
-    normalized_probs = [prob / total_prob for prob in probabilities]
-    return random.choices(range(len(sequence) - k + 1), weights=normalized_probs, k=1)[0]
+def accumulate(iterable, func=operator.add):
 
-# Function to calculate the probability of a k-mer given a profile matrix
-def calculate_kmer_probability(kmer, profile_matrix):
-    prob = 1
-    for i in range(len(kmer)):
-        prob *= profile_matrix[kmer[i]][i]
-    return prob
-    
-# Function to calculate the profile matrix with pseudocounts
-def calculate_profile_matrix(motifs, pseudocount=1):
+    it = iter(iterable)
+    try:
+        total = next(it)
+    except StopIteration:
+        return
+    yield total
+    for element in it:
+        total = func(total, element)
+        yield total
+
+def hammingDistance(str1, str2):
+
+        diffs = 0
+        for ch1, ch2 in zip(str1, str2):
+                if ch1 != ch2:
+                        diffs += 1
+        return diffs
+
+def d(kmer, dna):
+
+    k = len(kmer)
+    motif = []
+    totDist = 0
+    for phrase in dna:
+        localDist = len(phrase)+len(kmer)
+        word = ""
+        for i in range(len(phrase)-k+1):
+            subPattern = phrase[i:i+k]
+            if localDist > hammingDistance(kmer, subPattern):
+                localDist = hammingDistance(kmer, subPattern)
+                word = subPattern
+        motif.append(word)
+        totDist += localDist
+    return totDist
+
+def score(motifs):
+
     k = len(motifs[0])
-    profile_matrix = {'A': [pseudocount] * k, 'C': [pseudocount] * k, 'G': [pseudocount] * k, 'T': [pseudocount] * k}
-    for motif in motifs:
-        for i in range(k):
-            profile_matrix[motif[i]][i] += 1
-    return profile_matrix
+    pattern = []
+    for i in range(k):
+        A=0
+        C=0
+        G=0
+        T=0
+        for string in motifs:
+            if string[i]=='A':
+                A+=1
+            elif string[i]=='C':
+                C+=1
+            elif string[i]=='G':
+                G+=1
+            elif string[i]=='T':
+                T+=1
 
-# Gibbs sampling function
-def gibbs_sampler(Dna, k, t, N):
-    best_motifs = [sequence[:k] for sequence in Dna]
-    current_motifs = best_motifs.copy()
-    
-    for _ in range(N):
-        i = random.randint(0, t - 1)  # Generate a random integer between 0 and t-1
-        motifs_except_i = current_motifs[:i] + current_motifs[i+1:]
-        profile = calculate_profile_matrix(motifs_except_i)
-        selected_index = random_kmer_index(Dna[i], k, profile)
-        current_motifs[i] = Dna[i][selected_index:selected_index + k]
-        
-        current_score = score_motifs(current_motifs)
-        best_score = score_motifs(best_motifs)
-        
-        if current_score < best_score:
-            best_motifs = current_motifs.copy()
-    
-    return best_motifs
 
-# Main function to run GibbsSampler with 20 random starts
-def main(Dna, k, t, N, num_starts=20):
-    best_score = float('inf')
-    best_motifs = None
-    for _ in range(num_starts):
-        random_starts = [random.randint(0, len(Dna[0]) - k) for _ in range(t)]
-        motifs = [Dna[i][start:start+k] for i, start in enumerate(random_starts)]
-        current_motifs = gibbs_sampler(motifs, k, t, N)
-        current_score = score_motifs(current_motifs)
-        if current_score < best_score:
-            best_score = current_score
-            best_motifs = current_motifs
-    return best_motifs
+        if A >= C and A >= G and A >= T:
+            pattern.append('A')
+        elif C >= G and C >= T:
+            pattern.append('C')
+        elif G >= T:
+            pattern.append('G')
+        else:
+            pattern.append('T')
 
-# Function to calculate the score of a set of motifs
-def score_motifs(motifs):
-    t = len(motifs)
-    k = len(motifs[0])
+    pattern = "".join(pattern)
+
     score = 0
-    for j in range(k):
-        column = [motifs[i][j] for i in range(t)]
-        most_common = max(set(column), key=column.count)
-        score += sum(1 for nucleotide in column if nucleotide != most_common)
+    for string in motifs:
+        score += hammingDistance(string, pattern)
     return score
 
-# Example usage
-k = 8
-t = 5
-N = 100
-Dna = ["CGCCCCTCTCGGGGGTGTTCAGTAAACGGCCA",
-       "GGGCGAGGTATGTGTAAGTGCCAAGGTGCCAG",
-       "TAGTACCGAGACCGAAAGAAGTATACAGGCGT",
-       "TAGATCAAGTTTCAGGTGCACGTCGGTGAACC",
-       "AATCCACCAGCTCCACGTGCAATGTTGGCCTA"]
+def BuildMotifs(profile, dna, k):
+    
+    motif = []
+    for string in dna:
+        bestSubStr = ''
+        for i in range(len(string)+1-k):
+            substr = string[i:i+k]
+            prob = 1
+            bestProb = -1
+            for j in range(k):
+                if substr[j] == 'A':
+                    prob *= profile[j][0]
+                elif substr[j] == 'C':
+                    prob *= profile[j][1]
+                elif substr[j] == 'G':
+                    prob *= profile[j][2]
+                elif substr[j] == 'T':
+                    prob *= profile[j][3]
+            if prob > bestProb:
+                bestProb = prob
+                bestSubStr = substr
+        motif.append(bestSubStr)
+    return motif
 
-best_motifs = main(Dna, k, t, N)
-for motif in best_motifs:
-    print(motif)
+def BuildProfile(motif):
+
+    k = len(motif[0])
+    profile = [[0 for y in range(4)] for x in range(k)]
+    for count in range(k):
+        A = 1
+        C = 1
+        G = 1
+        T = 1
+        for string in motif:
+            if string[count]=='A':
+                A+=1
+            elif string[count]=='C':
+                C+=1
+            elif string[count]=='G':
+                G+=1
+            elif string[count]=='T':
+                T+=1
+        profile[count][0] = float(A)/(A+C+G+T)
+        profile[count][1] = float(C)/(A+C+G+T)
+        profile[count][2] = float(G)/(A+C+G+T)
+        profile[count][3] = float(T)/(A+C+G+T)
+    return profile
+
+def singleReplacementMotif(motifs, dna_i):
+
+    k = len(motifs[0])
+    profile = BuildProfile(motifs)
+    
+    
+    kmerDensities = [0 for x in range(len(dna_i)-k+1)]
+    for i in range(len(dna_i)-k+1):
+        prob = 1
+        for j in range(k):
+            if dna_i[i+j] == 'A':
+                prob *= profile[j][0]
+            elif dna_i[i+j] == 'C':
+                prob *= profile[j][1]
+            elif dna_i[i+j] == 'G':
+                prob *= profile[j][2]
+            elif dna_i[i+j] == 'T':
+                prob *= profile[j][3]
+        kmerDensities[i] = prob
+
+    
+    normalizationTot = sum(kmerDensities)
+    for i in range(len(dna_i)-k+1):
+        kmerDensities[i] = kmerDensities[i]/normalizationTot
+
+    
+    kmerDensities = list(accumulate(kmerDensities))
+
+    
+    randVal = random.random()
+    for i in range(len(dna_i)-k+1):
+        if randVal < kmerDensities[i]:
+            break
+    replacementKmer = dna_i[i:i+k]
+
+    return replacementKmer
+
+def gibbsSampler(dna, k, N):
+
+    t = len(dna)
+    # randomly select k-mers Motifs = (Motif_1, , Motif_t) in each string from Dna
+    motifs = []
+    for strand in dna:
+        i = random.randrange(len(strand)-k+1)
+        substr = strand[i:i+k]
+        motifs.append(substr)
+
+    bestMotifs = list(motifs)
+    bestMotifsScore = score(bestMotifs)
+    for j in range(1,N):
+        i = random.randrange(t)
+        subsetMotifs = motifs[0:i]+motifs[i+1:t]
+        replacementMotif = singleReplacementMotif(subsetMotifs, dna[i])
+        motifs[i] = replacementMotif
+
+        if score(motifs) < bestMotifsScore:
+            bestMotifs = list(motifs)
+            bestMotifsScore = score(bestMotifs)
+    return bestMotifs
+
+def multipleSeedsGibbsSampling(dna, k, t, N):
+
+    results = gibbsSampler(dna, k, N)
+    bestScore = score(results)
+    bestMotifs = list(results)
+    for i in range(1, t):
+        results = gibbsSampler(dna, k, N)
+        if score(results) < bestScore:
+            bestScore = score(results)
+            bestMotifs = list(results)
+    return bestMotifs
+
+
+with open('rosalind_ba2g-2.txt') as f:
+    
+    k = 15
+    t = 20
+    N=2000
+    strings = [st.rstrip() for st in f.readlines()]
+print('\n'.join(multipleSeedsGibbsSampling(strings,k,t,N)))
